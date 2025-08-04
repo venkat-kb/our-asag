@@ -10,7 +10,6 @@ import json
 from random import seed
 from agents.learned import grade_learned,train_learned_agent
 
-# Clean slate before every run
 for path in [
     "feedback/agent_weights.json",
     "feedback/learned_agent_model.pkl",
@@ -20,14 +19,12 @@ for path in [
     try:
         if os.path.exists(path):
             os.remove(path)
-            print(f"🗑️ Deleted: {path}")
+            print(f"Deleted: {path}")
     except Exception as e:
-        print(f"⚠️ Could not delete {path}: {e}")
+        print(f" Could not delete {path}: {e}")
 
-# Seed for reproducibility
 seed(42)
 
-# Load data
 all_data = pd.read_csv("data/asap-sas/train.tsv", sep="\t")
 # question_ids = all_data['EssaySet'].dropna().unique()[:2]
 # samples = []
@@ -48,7 +45,8 @@ subset = all_data[all_data['EssaySet'] == qid]
 rubric_docs = subset['EssayText'].tolist()
 samples = []
 
-# Sample 30 essays from this question
+# Sample 20 answers from the first question
+# This is to ensure we have enough data for training the learned agent
 for _ in range(20):
     row = subset.sample(1).iloc[0]
     question = f"EssaySet {qid}"
@@ -110,7 +108,7 @@ for i, (question, answer, true_score, rubric_docs) in enumerate(samples):
     agent_perf = compute_agent_performance(logs)
     weights = [agent_perf.get(a, 1.0) for a in agent_list]
     rewrite_main(weights, agent_perf)
-    print(f"✅ Graded sample {i+1}/10")
+    print(f"Graded sample {i+1}/20")
 
 from feedback.plot_performance import (
     load_update_log, load_full_logs,
@@ -121,4 +119,4 @@ try:
     plot_agent_performance(load_update_log())
     plot_final_vs_true(load_full_logs())
 except Exception as e:
-    print("⚠️ Could not generate performance graphs:", e)
+    print("Could not generate performance graphs:", e)

@@ -53,7 +53,7 @@ def plot_agent_performance(update_data):
     plt.grid(True)
     plt.tight_layout()
     plt.savefig("feedback/performance_plot.png")
-    print("📈 Saved agent performance graph to feedback/performance_plot.png")
+    print(" Saved agent performance graph to feedback/performance_plot.png")
 
 
 def plot_final_vs_true(log_data):
@@ -68,7 +68,7 @@ def plot_final_vs_true(log_data):
     ]
 
     if not data:
-        print("⚠️ No valid entries for final vs true plot.")
+        print(" No valid entries for final vs true plot.")
         return
 
     timestamps, final_scores, true_scores = zip(*data)
@@ -85,4 +85,4 @@ def plot_final_vs_true(log_data):
     plt.grid(True)
     plt.tight_layout()
     plt.savefig("feedback/final_vs_true_plot.png")
-    print("📊 Saved final vs true score graph to feedback/final_vs_true_plot.png")
+    print(" Saved final vs true score graph to feedback/final_vs_true_plot.png")

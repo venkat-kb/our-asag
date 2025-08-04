@@ -18,19 +18,28 @@ try:
 except:
     model = DummyModel()
 
+# def extract_features(question: str, answer: str, context: str, agent_outputs: list):
+#     features = [
+#         len(answer),
+#         len(set(answer.split())),
+#         len(context),
+#         sum([agent["score"] for agent in agent_outputs]) / len(agent_outputs),
+#     ]
+#     return np.array(features).reshape(1, -1)
+
 def extract_features(question: str, answer: str, context: str, agent_outputs: list):
-    features = [
-        len(answer),
-        len(set(answer.split())),
-        len(context),
-        sum([agent["score"] for agent in agent_outputs]) / len(agent_outputs),
-    ]
+    answer_len = len(answer) / 500  # normalize to [0, 1]
+    vocab_size = len(set(answer.split())) / 100
+    context_len = len(context) / 1000
+    avg_score = sum(agent["score"] for agent in agent_outputs) / (len(agent_outputs) * 3)  # normalize to [0, 1]
+
+    features = [answer_len, vocab_size, context_len, avg_score]
     return np.array(features).reshape(1, -1)
 
 def grade_learned(question: str, answer: str, context: str, agent_outputs: list):
     feats = extract_features(question, answer, context, agent_outputs)
     predicted = float(model.predict(feats)[0])
-    print(f"🧠 Raw learned score: {predicted}")
+    print(f" Raw learned score: {predicted}")
     return {
         "agent": "learned",
         "score": min(max(predicted, 0), 3),
@@ -59,7 +68,7 @@ def train_learned_agent(log_path="feedback/log.json"):
                 continue
 
     if len(X) < 5:
-        print("❗ Not enough training data for learned agent.")
+        print(" Not enough training data for learned agent.")
         return
 
     X = np.array(X)
@@ -71,10 +80,10 @@ def train_learned_agent(log_path="feedback/log.json"):
 
     preds = model.predict(X_test)
     mae = mean_absolute_error(y_test, preds)
-    print(f"📊 Learned agent MAE on test set: {mae:.4f}")
+    print(f" Learned agent MAE on test set: {mae:.4f}")
 
     joblib.dump(model, MODEL_PATH)
-    print(f"✅ Saved learned agent model to {MODEL_PATH}")
+    print(f" Saved learned agent model to {MODEL_PATH}")
     print("Training on targets:", y)
     print("Sample features:", X[:3])
     print("Model prediction on sample:", model.predict(X[:3]))
