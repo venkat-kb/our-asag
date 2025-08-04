@@ -1,7 +1,6 @@
 from typing import Dict
 
 def grade_strict(question: str, answer: str, context: str) -> Dict:
-    # Example rubric-matching agent
     score = 0
     explanation = ""
     if any(keyword in answer.lower() for keyword in context.lower().split()):
@@ -10,4 +9,3 @@ def grade_strict(question: str, answer: str, context: str) -> Dict:
     else:
         explanation = "Answer does not contain rubric keywords."
     return {"agent": "strict", "score": score, "explanation": explanation}
-
