@@ -16,7 +16,7 @@ def load_logs(path=LOG_PATH):
 
 def compute_agent_performance(logs, smoothing_factor=None):
     if smoothing_factor is None:
-        smoothing_factor = float(os.environ.get("EMA_SMOOTHING", 0.3))
+        smoothing_factor = float(os.environ.get("EMA_SMOOTHING", 0.5))
 
     max_weight = float(os.environ.get("DYNAMIC_CAP", 10.0))
 
@@ -49,6 +49,7 @@ def compute_agent_performance(logs, smoothing_factor=None):
     for i, agent in enumerate(agents):
         prev = prev_weights.get(agent, raw_weights[agent])
         smoothed[agent] = smoothing_factor * raw_weights[agent] + (1 - smoothing_factor) * prev
+        smoothed[agent] = max(0.0, smoothed[agent])
 
     return smoothed
 

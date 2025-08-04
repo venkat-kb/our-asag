@@ -10,26 +10,51 @@ import json
 from random import seed
 from agents.learned import grade_learned,train_learned_agent
 
-train_learned_agent()
+# Clean slate before every run
+for path in [
+    "feedback/agent_weights.json",
+    "feedback/learned_agent_model.pkl",
+    "feedback/log.json",
+    "feedback/update_log.json"
+]:
+    try:
+        if os.path.exists(path):
+            os.remove(path)
+            print(f"🗑️ Deleted: {path}")
+    except Exception as e:
+        print(f"⚠️ Could not delete {path}: {e}")
 
 # Seed for reproducibility
 seed(42)
 
 # Load data
 all_data = pd.read_csv("data/asap-sas/train.tsv", sep="\t")
-question_ids = all_data['EssaySet'].dropna().unique()[:2]
-samples = []
+# question_ids = all_data['EssaySet'].dropna().unique()[:2]
+# samples = []
 
 # Prepare 2 questions × 5 samples
-for qid in question_ids:
-    subset = all_data[all_data['EssaySet'] == qid]
-    rubric_docs = subset['EssayText'].tolist()
-    for _ in range(5):
-        row = subset.sample(1).iloc[0]
-        question = f"EssaySet {qid}"
-        answer = row['EssayText']
-        score = (row['Score1'] + row['Score2']) / 2
-        samples.append((question, answer, score, rubric_docs))
+# for qid in question_ids:
+#     subset = all_data[all_data['EssaySet'] == qid]
+#     rubric_docs = subset['EssayText'].tolist()
+#     for _ in range(5):
+#         row = subset.sample(1).iloc[0]
+#         question = f"EssaySet {qid}"
+#         answer = row['EssayText']
+#         score = (row['Score1'] + row['Score2']) / 2
+#         samples.append((question, answer, score, rubric_docs))
+
+qid = all_data['EssaySet'].dropna().unique()[0]  # Only first question
+subset = all_data[all_data['EssaySet'] == qid]
+rubric_docs = subset['EssayText'].tolist()
+samples = []
+
+# Sample 30 essays from this question
+for _ in range(20):
+    row = subset.sample(1).iloc[0]
+    question = f"EssaySet {qid}"
+    answer = row['EssayText']
+    score = (row['Score1'] + row['Score2']) / 2
+    samples.append((question, answer, score, rubric_docs))
 
 agent_list = ["strict", "semantic", "learned"]
 
@@ -39,13 +64,17 @@ if not os.path.exists(weights_path) or os.path.getsize(weights_path) == 0:
         json.dump({"weights": [1.0, 1.0]}, f)
 
 for i, (question, answer, true_score, rubric_docs) in enumerate(samples):
+    if i == 10:
+        print("Training learned agent on first 10 samples...")
+        train_learned_agent()
     retriever = FAISSRetriever(rubric_docs)
     context = " ".join(retriever.retrieve(question + answer))
 
     outputs = []
     for agent in [grade_strict, grade_semantic]:
         outputs.append(agent(question, answer, context))
-    outputs.append(grade_learned(question, answer, context, outputs))
+    if i >= 10:
+        outputs.append(grade_learned(question, answer, context, outputs))
 
     scores = [o['score'] for o in outputs]
     # Rescale scores to match the 0–3 rubric
@@ -83,5 +112,13 @@ for i, (question, answer, true_score, rubric_docs) in enumerate(samples):
     rewrite_main(weights, agent_perf)
     print(f"✅ Graded sample {i+1}/10")
 
-from feedback.plot_performance import load_update_log, plot_agent_performance
-plot_agent_performance(load_update_log())
+from feedback.plot_performance import (
+    load_update_log, load_full_logs,
+    plot_agent_performance, plot_final_vs_true
+)
+
+try:
+    plot_agent_performance(load_update_log())
+    plot_final_vs_true(load_full_logs())
+except Exception as e:
+    print("⚠️ Could not generate performance graphs:", e)
